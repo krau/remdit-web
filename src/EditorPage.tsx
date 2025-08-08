@@ -48,11 +48,14 @@ function EditorPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  if (!id) {
+  if (
+    !id ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)
+  ) {
     return (
       <Box p={8} textAlign="center">
         <Text fontSize="xl" color="red.500">
-          错误：缺少文档 ID
+          Invalid document ID: {id}
         </Text>
       </Box>
     );
