@@ -4,6 +4,7 @@ import { editor } from "monaco-editor/esm/vs/editor/editor.api";
 import { useEffect, useRef, useState } from "react";
 import { VscChevronRight, VscFolderOpened, VscGist } from "react-icons/vsc";
 import { useParams } from "react-router-dom";
+import useSWR from "swr";
 import useLocalStorageState from "use-local-storage-state";
 
 import Footer from "./Footer";
@@ -24,6 +25,17 @@ function generateName() {
 function generateHue() {
   return Math.floor(Math.random() * 360);
 }
+
+// SWR fetcher for API calls
+const fetcher = async (url: string) => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    const error = new Error("Failed to fetch");
+    (error as any).status = response.status;
+    throw error;
+  }
+  return response.json();
+};
 
 function EditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -48,22 +60,30 @@ function EditorPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  if (
-    !id ||
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)
-  ) {
-    return (
-      <Box p={8} textAlign="center">
-        <Text fontSize="xl" color="red.500">
-          Invalid document ID: {id}
-        </Text>
-      </Box>
-    );
-  }
+  // Use SWR to check if document exists
+  const {
+    data: documentData,
+    error: documentError,
+    isLoading: isCheckingDocument,
+  } = useSWR(
+    id &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)
+      ? `/api/file/${id}`
+      : null,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      shouldRetryOnError: false,
+    },
+  );
+
+  // Determine document existence based on SWR result
+  const documentExists = documentError?.status === 404 ? false : !!documentData;
 
   // Create YjsPad with initial content handling
   useEffect(() => {
-    if (!editor || !id) return;
+    if (!editor || !id || documentExists !== true) return;
 
     if (yjspad.current) {
       return;
@@ -91,7 +111,18 @@ function EditorPage() {
       },
       onChangeUsers: setUsers,
       onInitialContentNeeded: async () => {
-        // This callback is called when YjsPad needs initial content
+        // Use documentData from SWR if available, otherwise fetch
+        if (documentData) {
+          if (
+            documentData.language &&
+            languages.includes(documentData.language)
+          ) {
+            setLanguage(documentData.language);
+          }
+          return documentData.content || "";
+        }
+
+        // Fallback to direct fetch if SWR data not available
         try {
           const response = await fetch(`/api/file/${id}`);
           if (response.ok) {
@@ -116,13 +147,27 @@ function EditorPage() {
       pad.dispose();
       yjspad.current = undefined;
     };
-  }, [id, editor, toast]);
+  }, [id, editor, toast, documentExists, documentData]);
 
   useEffect(() => {
     if (connection === "connected") {
       yjspad.current?.setInfo({ name, hue });
     }
   }, [connection, name, hue]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "s") {
+        event.preventDefault();
+        saveFileToBackend();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [editor, id, language]);
 
   function handleLanguageChange(language: string) {
     setLanguage(language);
@@ -195,19 +240,41 @@ function EditorPage() {
     }
   };
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === "s") {
-        event.preventDefault();
-        saveFileToBackend();
-      }
-    };
+  // Handle validation and early returns after all hooks
+  if (
+    !id ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)
+  ) {
+    return (
+      <Box p={8} textAlign="center">
+        <Text fontSize="xl" color="red.500">
+          Invalid document ID: {id}
+        </Text>
+      </Box>
+    );
+  }
 
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [editor, id, language]);
+  // Show loading or error state while checking document existence
+  if (isCheckingDocument) {
+    return (
+      <Box p={8} textAlign="center">
+        <Text fontSize="xl">检查文档中...</Text>
+      </Box>
+    );
+  }
+
+  if (documentExists === false) {
+    return (
+      <Box p={8} textAlign="center">
+        <Text fontSize="xl" color="red.500">
+          文档不存在: {id}
+        </Text>
+        <Text mt={2} color="gray.500">
+          请检查文档ID是否正确
+        </Text>
+      </Box>
+    );
+  }
 
   return (
     <Flex
