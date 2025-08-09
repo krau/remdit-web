@@ -1,6 +1,7 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import HomePage from "./HomePage";
+import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
+
 import EditorPage from "./EditorPage";
+import HomePage from "./HomePage";
 
 function App() {
   return (
