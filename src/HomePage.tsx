@@ -16,7 +16,7 @@ function HomePage() {
             Remdit
           </Heading>
           <Text fontSize="lg" color="gray.600">
-            A collaborative code editor in your browser
+            A collaborative text editor in browser, for your remote files.
           </Text>
         </Box>
 
@@ -25,16 +25,11 @@ function HomePage() {
             colorScheme="blue"
             size="lg"
             onClick={() => {
-              window.open("https://github.com", "_blank");
+              window.open("https://github.com/krau/remdit", "_blank");
             }}
           >
             Get Started
           </Button>
-
-          <Text fontSize="sm" color="gray.500" textAlign="center">
-            Share a link to this pad with others, and they can edit from their
-            browser while seeing your changes in real time.
-          </Text>
         </VStack>
       </VStack>
     </Container>

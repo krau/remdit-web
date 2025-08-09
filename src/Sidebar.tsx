@@ -9,7 +9,6 @@ import {
   Link,
   Select,
   Stack,
-  Switch,
   Text,
   useToast,
 } from "@chakra-ui/react";
@@ -138,11 +137,11 @@ function Sidebar({
             w="full"
             mb={2}
           >
-            保存文件 (Ctrl+S)
+            Save File (Ctrl+S)
           </Button>
           {lastSaved && (
             <Text fontSize="xs" color="gray.500" mb={2}>
-              上次保存: {lastSaved.toLocaleTimeString()}
+              Last Save: {lastSaved.toLocaleTimeString()}
             </Text>
           )}
         </>
@@ -194,22 +193,23 @@ function Sidebar({
         About
       </Heading>
       <Text fontSize="sm" mb={1.5}>
-        <strong>Remdit</strong> 是一个浏览器中的远程文本文件协作编辑器.
+        <strong>Remdit</strong> is a collaborative text editor for remote files
+        in the browser.
       </Text>
       <Text fontSize="sm" mb={1.5}>
-        将此编辑器的链接分享给其他人，他们可以在浏览器中实时编辑，同时看到您的更改。
+        Share this editor's link with others, and they can edit in real-time in
+        the browser.
       </Text>
       <Text fontSize="sm" mb={1.5}>
-        Built using Golang and TypeScript. See the{" "}
+        The frontend is developed based on {" "}
         <Link
           color="blue.600"
           fontWeight="semibold"
-          href="https://github.com/krau/remdit"
+          href="https://github.com/ekzhang/rustpad"
           isExternal
         >
-          GitHub repository
-        </Link>{" "}
-        for details.
+          Rustpad
+        </Link>
       </Text>
     </Container>
   );

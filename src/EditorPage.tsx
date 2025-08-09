@@ -58,7 +58,7 @@ function EditorPage() {
     defaultValue: "system",
   });
   const [systemPrefersDark, setSystemPrefersDark] = useState(false);
-  const yjspad = useRef<YjsPad>();
+  const yjspad = useRef<YjsPad>(null);
 
   // Calculate actual dark mode based on colorMode and system preference
   const darkMode =
@@ -158,10 +158,10 @@ function EditorPage() {
             }
             return data.content || "";
           } else {
-            console.log("API响应失败，可能是新文档");
+            console.log("Response not OK, might be a new document");
           }
         } catch (error) {
-          console.error("获取文件内容失败:", error);
+          console.error("Failed to get document content:", error);
         }
         return "";
       },
@@ -171,7 +171,7 @@ function EditorPage() {
 
     return () => {
       pad.dispose();
-      yjspad.current = undefined;
+      yjspad.current = null;
     };
   }, [id, editor, toast, documentExists, documentData]);
 
@@ -248,22 +248,22 @@ function EditorPage() {
       if (response.ok) {
         setLastSaved(new Date());
         toast({
-          title: "文件已保存",
-          description: "文件已成功保存到服务器",
+          title: "File saved",
+          description: "",
           position: "bottom-right",
           status: "success",
           duration: 2000,
           isClosable: true,
         });
       } else {
-        throw new Error("保存失败");
+        throw new Error("Failed to save file");
       }
     } catch (error) {
-      console.error("保存文件失败:", error);
+      console.error("Failed to save file:", error);
       toast({
-        title: "保存失败",
+        title: "Failed to save file",
         position: "bottom-right",
-        description: "无法保存文件到服务器",
+        description: "Unable to save file.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -291,7 +291,7 @@ function EditorPage() {
   if (isCheckingDocument) {
     return (
       <Box p={8} textAlign="center">
-        <Text fontSize="xl">检查文档中...</Text>
+        <Text fontSize="xl">Checking the file...</Text>
       </Box>
     );
   }
@@ -300,10 +300,10 @@ function EditorPage() {
     return (
       <Box p={8} textAlign="center">
         <Text fontSize="xl" color="red.500">
-          文档不存在: {id}
+          File not exists: {id}
         </Text>
         <Text mt={2} color="gray.500">
-          请检查文档ID是否正确
+          Please check if the File ID is correct
         </Text>
       </Box>
     );
