@@ -80,6 +80,7 @@ function EditorPage() {
           title: "Desynchronized with server",
           description: "Please save your work and refresh the page.",
           status: "error",
+          position: "bottom-right",
           duration: null,
         });
       },
@@ -128,6 +129,7 @@ function EditorPage() {
     if (yjspad.current?.setLanguage(language)) {
       toast({
         title: "Language updated",
+        position: "bottom-right",
         description: (
           <>
             All users are now editing in{" "}
@@ -170,6 +172,7 @@ function EditorPage() {
         toast({
           title: "文件已保存",
           description: "文件已成功保存到服务器",
+          position: "bottom-right",
           status: "success",
           duration: 2000,
           isClosable: true,
@@ -181,6 +184,7 @@ function EditorPage() {
       console.error("保存文件失败:", error);
       toast({
         title: "保存失败",
+        position: "bottom-right",
         description: "无法保存文件到服务器",
         status: "error",
         duration: 3000,

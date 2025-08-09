@@ -13,6 +13,7 @@ import {
   Text,
   useToast,
 } from "@chakra-ui/react";
+
 import ConnectionStatus from "./ConnectionStatus";
 import User from "./User";
 import languages from "./languages.json";
@@ -58,6 +59,7 @@ function Sidebar({
     await navigator.clipboard.writeText(documentUrl);
     toast({
       title: "Copied!",
+      position: "top-left",
       description: "Link copied to clipboard",
       status: "success",
       duration: 2000,
