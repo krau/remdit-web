@@ -52,13 +52,39 @@ function EditorPage() {
     defaultValue: generateHue,
   });
   const [editor, setEditor] = useState<editor.IStandaloneCodeEditor>();
-  const [darkMode, setDarkMode] = useLocalStorageState("darkMode", {
-    defaultValue: false,
+  const [colorMode, setColorMode] = useLocalStorageState<
+    "light" | "dark" | "system"
+  >("colorMode", {
+    defaultValue: "system",
   });
+  const [systemPrefersDark, setSystemPrefersDark] = useState(false);
   const yjspad = useRef<YjsPad>();
+
+  // Calculate actual dark mode based on colorMode and system preference
+  const darkMode =
+    colorMode === "system" ? systemPrefersDark : colorMode === "dark";
 
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+  // Listen to system color scheme changes
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    // Set initial value
+    setSystemPrefersDark(mediaQuery.matches);
+
+    // Listen for changes
+    const handleChange = (e: MediaQueryListEvent) => {
+      setSystemPrefersDark(e.matches);
+    };
+
+    mediaQuery.addEventListener("change", handleChange);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleChange);
+    };
+  }, []);
 
   // Use SWR to check if document exists
   const {
@@ -192,7 +218,14 @@ function EditorPage() {
   }
 
   function handleDarkModeChange() {
-    setDarkMode(!darkMode);
+    // Cycle through: system -> light -> dark -> system
+    if (colorMode === "system") {
+      setColorMode("light");
+    } else if (colorMode === "light") {
+      setColorMode("dark");
+    } else {
+      setColorMode("system");
+    }
   }
 
   const saveFileToBackend = async () => {
@@ -299,6 +332,8 @@ function EditorPage() {
           documentId={id}
           connection={connection}
           darkMode={darkMode}
+          colorMode={colorMode}
+          systemPrefersDark={systemPrefersDark}
           language={language}
           currentUser={{ name, hue }}
           users={users}

@@ -23,6 +23,8 @@ export type SidebarProps = {
   documentId: string;
   connection: "connected" | "disconnected" | "desynchronized";
   darkMode: boolean;
+  colorMode: "light" | "dark" | "system";
+  systemPrefersDark: boolean;
   language: string;
   currentUser: UserInfo;
   users: Record<number, UserInfo>;
@@ -39,6 +41,8 @@ function Sidebar({
   documentId,
   connection,
   darkMode,
+  colorMode,
+  systemPrefersDark,
   language,
   currentUser,
   users,
@@ -80,8 +84,26 @@ function Sidebar({
       <ConnectionStatus darkMode={darkMode} connection={connection} />
 
       <Flex justifyContent="space-between" mt={4} mb={1.5} w="full">
-        <Heading size="sm">Dark Mode</Heading>
-        <Switch isChecked={darkMode} onChange={onDarkModeChange} />
+        <Heading size="sm">
+          Color Mode
+          <Text fontSize="xs" color="gray.500" fontWeight="normal">
+            {colorMode === "system"
+              ? `System (${systemPrefersDark ? "Dark" : "Light"})`
+              : colorMode === "dark"
+                ? "Dark"
+                : "Light"}
+          </Text>
+        </Heading>
+        <Button
+          size="xs"
+          variant="outline"
+          onClick={onDarkModeChange}
+          _hover={{ bg: darkMode ? "#575759" : "gray.200" }}
+          bgColor={darkMode ? "#575759" : "gray.200"}
+          color={darkMode ? "white" : "inherit"}
+        >
+          {colorMode === "system" ? "🖥️" : colorMode === "dark" ? "🌙" : "☀️"}
+        </Button>
       </Flex>
 
       <Heading mt={4} mb={1.5} size="sm">
