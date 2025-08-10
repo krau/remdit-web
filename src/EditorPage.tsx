@@ -51,6 +51,7 @@ function EditorPage() {
   const [hue, setHue] = useLocalStorageState("hue", {
     defaultValue: generateHue,
   });
+  const [fileName, setFileName] = useState(id || "");
   const [editor, setEditor] = useState<editor.IStandaloneCodeEditor>();
   const [colorMode, setColorMode] = useLocalStorageState<
     "light" | "dark" | "system"
@@ -149,6 +150,9 @@ function EditorPage() {
           ) {
             setLanguage(documentData.language);
           }
+          if (documentData.filename) {
+            setFileName(documentData.filename);
+          }
           return documentData.content || "";
         }
 
@@ -159,6 +163,9 @@ function EditorPage() {
             const data = await response.json();
             if (data.language && languages.includes(data.language)) {
               setLanguage(data.language);
+            }
+            if (data.filename) {
+              setFileName(data.filename);
             }
             return data.content || "";
           }
@@ -362,7 +369,7 @@ function EditorPage() {
             <Text>documents</Text>
             <Icon as={VscChevronRight} fontSize="md" />
             <Icon as={VscGist} fontSize="md" color="purple.500" />
-            <Text>{id}</Text>
+            <Text>{fileName}</Text>
           </HStack>
           <Box flex={1} minH={0}>
             <Editor
