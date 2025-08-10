@@ -19,6 +19,7 @@ export type YjsPadOptions = {
     readonly onChangeLanguage?: (language: string) => void;
     readonly onChangeUsers?: (users: Record<string, UserInfo>) => void;
     readonly onInitialContentNeeded?: () => Promise<string>;
+    readonly checkRoomExists?: () => Promise<boolean>;
     readonly reconnectInterval?: number;
 };
 
@@ -110,24 +111,62 @@ class YjsPad {
         if (this.initialContentHandled) return;
         this.initialContentHandled = true;
 
-        // Wait a bit for any existing content to sync
-        await new Promise(resolve => setTimeout(resolve, 200));
-
         const yText = this.doc.getText("content");
-        const currentContent = yText.toString();
 
-        // Only load initial content if Yjs document is empty
-        if (currentContent.length === 0 && this.options.onInitialContentNeeded) {
+        // 首先检查房间是否已存在（即是否有其他用户在编辑）
+        let roomExists = false;
+        if (this.options.checkRoomExists) {
             try {
-                const initialContent = await this.options.onInitialContentNeeded();
-                if (initialContent && yText.toString().length === 0) {
-                    // Use Yjs transaction to set initial content
-                    this.doc.transact(() => {
-                        yText.insert(0, initialContent);
-                    });
-                }
+                roomExists = await this.options.checkRoomExists();
             } catch (error) {
-                console.error("Failed to load initial content:", error);
+                console.warn("Failed to check room existence:", error);
+                // 如果检查失败，回退到原来的延迟策略
+                roomExists = false;
+            }
+        }
+
+        if (roomExists) {
+            // 如果房间已存在，优先使用 Yjs 数据，等待同步
+            const waitForSync = async (maxWaitTime = 2000) => {
+                if (yText.toString().length > 0) {
+                    return; // 已有内容
+                }
+
+                let waitTime = 0;
+                const interval = 100;
+
+                return new Promise<void>(resolve => {
+                    const check = () => {
+                        const content = yText.toString();
+                        if (content.length > 0 || waitTime >= maxWaitTime) {
+                            resolve();
+                        } else {
+                            waitTime += interval;
+                            setTimeout(check, interval);
+                        }
+                    };
+                    check();
+                });
+            };
+
+            await waitForSync();
+            console.log("Room exists, used Yjs synchronized content");
+        } else {
+            // 如果房间不存在，使用后端内容作为初始内容
+            if (this.options.onInitialContentNeeded && yText.toString().length === 0) {
+                try {
+                    const initialContent = await this.options.onInitialContentNeeded();
+                    // 再次检查文档是否仍然为空，避免在请求过程中内容已被同步
+                    if (initialContent && yText.toString().length === 0) {
+                        // 使用Yjs事务设置初始内容
+                        this.doc.transact(() => {
+                            yText.insert(0, initialContent);
+                        });
+                        console.log("Room doesn't exist, loaded content from backend");
+                    }
+                } catch (error) {
+                    console.error("Failed to load initial content:", error);
+                }
             }
         }
     }
@@ -154,7 +193,6 @@ class YjsPad {
         // states.forEach callback signature is (value, key)
         states.forEach((state: any, clientId: number) => {
             if (!state || !state.user) return;
-            // 正确排除本地 client（clientId 是 number）
             if (localClientId !== undefined && clientId === localClientId) return;
 
             newUsers[String(clientId)] = {

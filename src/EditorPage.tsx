@@ -136,6 +136,10 @@ function EditorPage() {
         }
       },
       onChangeUsers: setUsers,
+      checkRoomExists: async () => {
+        // 直接使用 SWR 已获取的数据，避免重复请求
+        return documentData?.roomexists === true;
+      },
       onInitialContentNeeded: async () => {
         // Use documentData from SWR if available, otherwise fetch
         if (documentData) {
@@ -157,8 +161,6 @@ function EditorPage() {
               setLanguage(data.language);
             }
             return data.content || "";
-          } else {
-            console.log("Response not OK, might be a new document");
           }
         } catch (error) {
           console.error("Failed to get document content:", error);
