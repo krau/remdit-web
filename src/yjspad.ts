@@ -106,6 +106,14 @@ class YjsPad {
         this.provider.on("connection-error", () => {
             this.options.onDesynchronized?.();
         });
+
+        window.addEventListener("beforeunload", () => {
+            try {
+                this.awareness.setLocalState(null);
+            } catch (e) {
+                null
+            }
+        });
     }
 
     private async handleInitialContent() {
