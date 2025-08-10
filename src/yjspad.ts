@@ -1,6 +1,7 @@
 import { MonacoBinding } from "y-monaco";
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
+import { Awareness } from "y-protocols/awareness";
 import type { editor } from "monaco-editor/esm/vs/editor/editor.api";
 
 /** A user currently editing the document. */
@@ -28,7 +29,7 @@ class YjsPad {
     private doc: Y.Doc;
     private provider: WebsocketProvider;
     private binding: MonacoBinding;
-    private awareness: any;
+    private awareness: Awareness;
     private languageText: Y.Text;
     private users: Record<string, UserInfo> = {};
     private initialContentHandled = false;
@@ -188,17 +189,32 @@ class YjsPad {
     private updateUsers() {
         const states = this.awareness.getStates(); // Map<number, any>
         const newUsers: Record<string, UserInfo> = {};
+        const usersByIdentity: Map<string, { clientId: number; userInfo: UserInfo }> = new Map();
         const localClientId = this.awareness.clientID; // number | undefined
 
-        // states.forEach callback signature is (value, key)
+        // 第一步：收集所有远程用户，按身份去重
         states.forEach((state: any, clientId: number) => {
             if (!state || !state.user) return;
             if (localClientId !== undefined && clientId === localClientId) return;
 
-            newUsers[String(clientId)] = {
+            const userInfo: UserInfo = {
                 name: state.user.name || "Anonymous",
                 hue: state.user.hue ?? 0,
             };
+
+            // 使用用户名+颜色作为唯一标识，去重相同用户的多个连接
+            const userIdentity = `${userInfo.name}-${userInfo.hue}`;
+
+            // 如果已存在相同身份的用户，保留较新的（较大的 clientId）
+            const existing = usersByIdentity.get(userIdentity);
+            if (!existing || clientId > existing.clientId) {
+                usersByIdentity.set(userIdentity, { clientId, userInfo });
+            }
+        });
+
+        // 第二步：将去重后的用户添加到结果中
+        usersByIdentity.forEach(({ clientId, userInfo }) => {
+            newUsers[String(clientId)] = userInfo;
         });
 
         if (!this.usersEqual(this.users, newUsers)) {
