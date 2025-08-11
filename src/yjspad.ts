@@ -19,7 +19,10 @@ export type YjsPadOptions = {
   readonly onDesynchronized?: () => void;
   readonly onChangeLanguage?: (language: string) => void;
   readonly onChangeUsers?: (users: Record<string, UserInfo>) => void;
-  readonly onInitialContentNeeded?: () => Promise<string>;
+  readonly onInitialContentNeeded?: () => Promise<{
+    content: string;
+    language?: string;
+  }>;
   readonly checkRoomExists?: () => Promise<boolean>;
   readonly reconnectInterval?: number;
 };
@@ -88,6 +91,11 @@ class YjsPad {
         this.options.onConnected?.();
         // Handle initial content after connection
         this.handleInitialContent();
+        // Check for existing language when connected
+        const currentLanguage = this.languageText.toString();
+        if (currentLanguage) {
+          this.options.onChangeLanguage?.(currentLanguage);
+        }
       } else if (event.status === "disconnected") {
         this.options.onDisconnected?.();
       }
@@ -171,18 +179,42 @@ class YjsPad {
         yText.toString().length === 0
       ) {
         try {
-          const initialContent = await this.options.onInitialContentNeeded();
+          const initialData = await this.options.onInitialContentNeeded();
           // 再次检查文档是否仍然为空，避免在请求过程中内容已被同步
-          if (initialContent && yText.toString().length === 0) {
+          if (initialData?.content && yText.toString().length === 0) {
             // 使用Yjs事务设置初始内容
             this.doc.transact(() => {
-              yText.insert(0, initialContent);
+              yText.insert(0, initialData.content);
             });
             console.log("Room doesn't exist, loaded content from backend");
+          }
+
+          // 同步语言信息到 Yjs 文档
+          if (
+            initialData?.language &&
+            this.languageText.toString().length === 0
+          ) {
+            this.doc.transact(() => {
+              this.languageText.insert(0, initialData.language!);
+            });
+            console.log("Synchronized language to Yjs:", initialData.language);
           }
         } catch (error) {
           console.error("Failed to load initial content:", error);
         }
+      }
+    }
+
+    // 无论房间是否存在，都要检查和同步语言信息
+    // 这样确保第二个用户也能获取到正确的语言
+    if (this.languageText.toString().length === 0) {
+      // 如果 Yjs 文档中没有语言信息，尝试从当前编辑器状态获取
+      // 这个信息可能已经在 onInitialContentNeeded 回调中被设置
+      const currentLanguage = this.options.editor.getModel()?.getLanguageId();
+      if (currentLanguage && currentLanguage !== "plaintext") {
+        this.doc.transact(() => {
+          this.languageText.insert(0, currentLanguage);
+        });
       }
     }
   }

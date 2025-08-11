@@ -153,7 +153,10 @@ function EditorPage() {
           if (documentData.filename) {
             setFileName(documentData.filename);
           }
-          return documentData.content || "";
+          return {
+            content: documentData.content || "",
+            language: documentData.language,
+          };
         }
 
         // Fallback to direct fetch if SWR data not available
@@ -167,12 +170,15 @@ function EditorPage() {
             if (data.filename) {
               setFileName(data.filename);
             }
-            return data.content || "";
+            return {
+              content: data.content || "",
+              language: data.language,
+            };
           }
         } catch (error) {
           console.error("Failed to get document content:", error);
         }
-        return "";
+        return { content: "" };
       },
     });
 
