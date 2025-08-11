@@ -201,7 +201,7 @@ function Sidebar({
         the browser.
       </Text>
       <Text fontSize="sm" mb={1.5}>
-        The frontend is developed based on {" "}
+        The frontend is developed based on{" "}
         <Link
           color="blue.600"
           fontWeight="semibold"
